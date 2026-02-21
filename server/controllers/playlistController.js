@@ -4,12 +4,20 @@ export async function getPlaylists(req, res) {
   try {
     const { data, error } = await supabaseAdmin
       .from('playlists')
-      .select('id, name, created_at, playlist_tracks(id, track_id, track_name, artist_name, track_image, audio_url, duration)')
+      .select('id, user_id, name, created_at, playlist_tracks(id, track_id, track_name, artist_name, track_image, audio_url, duration)')
       .eq('user_id', req.user.id)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
-    res.json({ results: data || [] });
+    const results = (data || []).map((playlist) => ({
+      ...playlist,
+      owner: {
+        id: req.user.id,
+        email: req.user.email,
+        username: req.user.user_metadata?.username || null,
+      },
+    }));
+    res.json({ results });
   } catch (err) {
     res.status(500).json({ error: err.message || 'Failed to fetch playlists' });
   }
@@ -23,11 +31,20 @@ export async function createPlaylist(req, res) {
     const { data, error } = await supabaseAdmin
       .from('playlists')
       .insert({ user_id: req.user.id, name })
-      .select('id, name, created_at')
+      .select('id, user_id, name, created_at')
       .single();
 
     if (error) throw error;
-    res.status(201).json({ result: data });
+    res.status(201).json({
+      result: {
+        ...data,
+        owner: {
+          id: req.user.id,
+          email: req.user.email,
+          username: req.user.user_metadata?.username || null,
+        },
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message || 'Failed to create playlist' });
   }
@@ -65,7 +82,16 @@ export async function addTrack(req, res) {
       .single();
 
     if (error) throw error;
-    res.status(201).json({ result: data });
+    res.status(201).json({
+      result: {
+        ...data,
+        owner: {
+          id: req.user.id,
+          email: req.user.email,
+          username: req.user.user_metadata?.username || null,
+        },
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: err.message || 'Failed to add track' });
   }
