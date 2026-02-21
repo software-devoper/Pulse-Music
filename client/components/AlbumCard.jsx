@@ -1,6 +1,6 @@
-import { Pause, Play } from 'lucide-react';
+import { Loader2, Pause, Play } from 'lucide-react';
 
-export default function AlbumCard({ item, onPlay, active, isPlaying }) {
+export default function AlbumCard({ item, onPlay, active, isPlaying, isBuffering }) {
   return (
     <article className="group min-w-[190px] animate-fadeInUp rounded-2xl bg-card/80 p-3 transition hover:bg-card">
       <div className="relative overflow-hidden rounded-xl">
@@ -14,7 +14,13 @@ export default function AlbumCard({ item, onPlay, active, isPlaying }) {
           className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition group-hover:opacity-100"
         >
           <span className="rounded-full bg-rose-500 p-3 text-white">
-            {active && isPlaying ? <Pause size={18} /> : <Play size={18} fill="currentColor" />}
+            {active && isBuffering ? (
+              <Loader2 size={18} className="animate-spin" />
+            ) : active && isPlaying ? (
+              <Pause size={18} />
+            ) : (
+              <Play size={18} fill="currentColor" />
+            )}
           </span>
         </button>
       </div>
