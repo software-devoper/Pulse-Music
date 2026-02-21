@@ -9,8 +9,8 @@ export async function resolveEmailByUsername(req, res) {
     // This avoids dependency on Auth Admin listUsers for normal username login flow.
     const { data: profileMatch, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('email, full_name')
-      .or(`full_name.eq.${username},email.ilike.${username}@%`)
+      .select('email, username')
+      .or(`username.eq.${username},email.ilike.${username}@%`)
       .limit(1)
       .maybeSingle();
 
