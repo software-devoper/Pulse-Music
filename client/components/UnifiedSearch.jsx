@@ -7,6 +7,19 @@ import { getPopularTracks, searchTracks } from '../services/jamendo';
 import { saveTrackForOffline } from '../services/offlineDownloads';
 import { searchYouTubeVideos } from '../services/youtube';
 
+const YT_QUOTA_KEY = 'pulse_music_youtube_quota_date';
+
+const todayKey = () => new Date().toISOString().slice(0, 10);
+
+const isQuotaLimitedToday = () => localStorage.getItem(YT_QUOTA_KEY) === todayKey();
+
+const markQuotaLimitedToday = () => localStorage.setItem(YT_QUOTA_KEY, todayKey());
+
+const clearOldQuotaFlag = () => {
+  const stored = localStorage.getItem(YT_QUOTA_KEY);
+  if (stored && stored !== todayKey()) localStorage.removeItem(YT_QUOTA_KEY);
+};
+
 function mixResults(youtubeItems, jamendoItems) {
   const ytMapped = (youtubeItems || []).map((item) => ({
     id: `yt-${item.videoId}`,
@@ -47,24 +60,40 @@ export default function UnifiedSearch() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [downloadingId, setDownloadingId] = useState('');
+  const [youtubeLimited, setYoutubeLimited] = useState(isQuotaLimitedToday());
   const { user } = useAuth();
   const { playTrack, currentTrack, isPlaying, isBuffering, setIsPlaying } = usePlayer();
 
   useEffect(() => {
+    clearOldQuotaFlag();
+    if (!isQuotaLimitedToday()) setYoutubeLimited(false);
+  }, []);
+
+  useEffect(() => {
     const loadPopular = async () => {
       try {
-        const [yt, jamendoPopular] = await Promise.all([
-          searchYouTubeVideos('today top music songs'),
-          getPopularTracks(),
-        ]);
+        const requests = youtubeLimited
+          ? [Promise.resolve([]), getPopularTracks()]
+          : [searchYouTubeVideos('today top music songs'), getPopularTracks()];
+        const [ytResult, jamendoResult] = await Promise.allSettled(requests);
+
+        const yt = ytResult.status === 'fulfilled' ? ytResult.value : [];
+        const jamendoPopular = jamendoResult.status === 'fulfilled' ? jamendoResult.value : [];
         setPopular(mixResults(yt, jamendoPopular).slice(0, 16));
+
+        if (ytResult.status === 'rejected' && ytResult.reason?.code === 'YOUTUBE_QUOTA_EXCEEDED') {
+          markQuotaLimitedToday();
+          setYoutubeLimited(true);
+          setNotice('Showing available songs now. Full catalog will return automatically tomorrow.');
+        }
       } catch {
         setPopular([]);
+        setError('Could not load popular songs right now.');
       }
     };
 
     loadPopular();
-  }, []);
+  }, [youtubeLimited]);
 
   useEffect(() => {
     if (!debouncedQuery?.trim()) {
@@ -76,18 +105,35 @@ export default function UnifiedSearch() {
     const loadResults = async () => {
       setLoading(true);
       setError('');
+      setNotice('');
       try {
-        const [yt, jm] = await Promise.all([searchYouTubeVideos(debouncedQuery), searchTracks(debouncedQuery)]);
+        const requests = youtubeLimited
+          ? [Promise.resolve([]), searchTracks(debouncedQuery)]
+          : [searchYouTubeVideos(debouncedQuery), searchTracks(debouncedQuery)];
+        const [ytResult, jamendoResult] = await Promise.allSettled(requests);
+
+        const yt = ytResult.status === 'fulfilled' ? ytResult.value : [];
+        const jm = jamendoResult.status === 'fulfilled' ? jamendoResult.value : [];
         setResults(mixResults(yt, jm));
+
+        if (ytResult.status === 'rejected' && ytResult.reason?.code === 'YOUTUBE_QUOTA_EXCEEDED') {
+          markQuotaLimitedToday();
+          setYoutubeLimited(true);
+          setNotice('Showing available songs now. Full catalog will return automatically tomorrow.');
+        }
+
+        if (jamendoResult.status === 'rejected' && ytResult.status === 'rejected') {
+          setError('Search is temporarily unavailable. Please try again shortly.');
+        }
       } catch (err) {
-        setError(err.message || 'Search failed');
+        setError('Search is temporarily unavailable. Please try again shortly.');
       } finally {
         setLoading(false);
       }
     };
 
     loadResults();
-  }, [debouncedQuery]);
+  }, [debouncedQuery, youtubeLimited]);
 
   const activeList = useMemo(() => (debouncedQuery?.trim() ? results : popular), [debouncedQuery, popular, results]);
 
