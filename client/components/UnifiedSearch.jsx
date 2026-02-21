@@ -1,4 +1,4 @@
-import { Check, Download, Music2, Pause, Play, Search } from 'lucide-react';
+import { Check, Download, Loader2, Music2, Pause, Play, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import useDebounce from '../hooks/useDebounce';
 import { useAuth } from '../context/AuthContext';
@@ -48,7 +48,7 @@ export default function UnifiedSearch() {
   const [notice, setNotice] = useState('');
   const [downloadingId, setDownloadingId] = useState('');
   const { user } = useAuth();
-  const { playTrack, currentTrack, isPlaying, setIsPlaying } = usePlayer();
+  const { playTrack, currentTrack, isPlaying, isBuffering, setIsPlaying } = usePlayer();
 
   useEffect(() => {
     const loadPopular = async () => {
@@ -159,7 +159,13 @@ export default function UnifiedSearch() {
                   />
                   <span className="absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition group-hover:opacity-100">
                     <span className="rounded-full bg-rose-500 p-2 text-white">
-                      {active && isPlaying ? <Pause size={16} /> : <Play size={16} fill="currentColor" />}
+                      {active && isBuffering ? (
+                        <Loader2 size={16} className="animate-spin" />
+                      ) : active && isPlaying ? (
+                        <Pause size={16} />
+                      ) : (
+                        <Play size={16} fill="currentColor" />
+                      )}
                     </span>
                   </span>
                 </button>
@@ -194,7 +200,13 @@ export default function UnifiedSearch() {
                       className="rounded-md border border-white/20 p-1.5 text-gray-200 hover:bg-white/10"
                       title={paused ? 'Resume' : active && isPlaying ? 'Pause' : 'Play'}
                     >
-                      {active && isPlaying ? <Pause size={14} /> : <Play size={14} />}
+                      {active && isBuffering ? (
+                        <Loader2 size={14} className="animate-spin" />
+                      ) : active && isPlaying ? (
+                        <Pause size={14} />
+                      ) : (
+                        <Play size={14} />
+                      )}
                     </button>
                   </div>
                 </div>
