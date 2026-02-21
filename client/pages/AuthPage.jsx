@@ -2,21 +2,7 @@ import { Disc3, Eye, EyeOff, Headphones, Lock, LogIn, Mail, ShieldCheck, User, U
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-
-const USERNAME_MAP_KEY = 'pulse_username_email_map';
-
-function getUsernameMap() {
-  try {
-    const raw = localStorage.getItem(USERNAME_MAP_KEY);
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-function setUsernameMap(map) {
-  localStorage.setItem(USERNAME_MAP_KEY, JSON.stringify(map));
-}
+import api from '../services/api';
 
 export default function AuthPage() {
   const { signIn, signUp } = useAuth();
@@ -41,11 +27,11 @@ export default function AuthPage() {
     return isSignup ? 'Create account' : 'Log in';
   }, [loading, isSignup]);
 
-  const resolveLoginEmail = (usernameInput) => {
+  const resolveLoginEmail = async (usernameInput) => {
     const normalized = usernameInput.trim().toLowerCase();
     if (normalized.includes('@')) return normalized;
-    const map = getUsernameMap();
-    return map[normalized] || `${normalized}@pulsemusic.app`;
+    const { data } = await api.get('/auth/email-by-username', { params: { username: normalized } });
+    return data?.email;
   };
 
   const handleSubmit = async (e) => {
@@ -82,10 +68,6 @@ export default function AuthPage() {
         });
         if (signUpError) throw signUpError;
 
-        const map = getUsernameMap();
-        map[normalizedUsername] = signupEmail;
-        setUsernameMap(map);
-
         if (!data?.session) {
           setNotice('Pulse Music Studio: account created. Check your email to verify your account, then log in.');
           setMode('login');
@@ -94,7 +76,8 @@ export default function AuthPage() {
           return;
         }
       } else {
-        const emailForAuth = resolveLoginEmail(normalizedUsername);
+        const emailForAuth = await resolveLoginEmail(normalizedUsername);
+        if (!emailForAuth) throw new Error('Username not found');
         const { error: signInError } = await signIn(emailForAuth, password);
         if (signInError) throw signInError;
       }
