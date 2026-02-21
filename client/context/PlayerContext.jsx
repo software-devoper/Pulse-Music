@@ -6,6 +6,7 @@ export function PlayerProvider({ children }) {
   const [currentTrack, setCurrentTrack] = useState(null);
   const [queue, setQueue] = useState([]);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [isBuffering, setIsBuffering] = useState(false);
   const [volume, setVolume] = useState(0.7);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
@@ -15,6 +16,7 @@ export function PlayerProvider({ children }) {
     setCurrentTrack(track);
     setQueue(nextQueue);
     setIsPlaying(true);
+    setIsBuffering(true);
     setProgress(0);
   };
 
@@ -24,6 +26,7 @@ export function PlayerProvider({ children }) {
     const next = queue[index + 1] || queue[0];
     setCurrentTrack(next);
     setIsPlaying(true);
+    setIsBuffering(true);
     setProgress(0);
   };
 
@@ -33,6 +36,7 @@ export function PlayerProvider({ children }) {
     const prev = queue[index - 1] || queue[queue.length - 1];
     setCurrentTrack(prev);
     setIsPlaying(true);
+    setIsBuffering(true);
     setProgress(0);
   };
 
@@ -42,6 +46,7 @@ export function PlayerProvider({ children }) {
     setQueue([]);
     setProgress(0);
     setDuration(0);
+    setIsBuffering(false);
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.src = '';
@@ -53,11 +58,13 @@ export function PlayerProvider({ children }) {
       currentTrack,
       queue,
       isPlaying,
+      isBuffering,
       volume,
       progress,
       duration,
       audioRef,
       setIsPlaying,
+      setIsBuffering,
       setVolume,
       setProgress,
       setDuration,
@@ -66,7 +73,7 @@ export function PlayerProvider({ children }) {
       prevTrack,
       clearPlayer,
     }),
-    [currentTrack, queue, isPlaying, volume, progress, duration]
+    [currentTrack, queue, isPlaying, isBuffering, volume, progress, duration]
   );
 
   return <PlayerContext.Provider value={value}>{children}</PlayerContext.Provider>;
