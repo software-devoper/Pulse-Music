@@ -4,6 +4,7 @@ import morgan from 'morgan';
 import jamendoRoutes from './routes/jamendoRoutes.js';
 import playlistRoutes from './routes/playlistRoutes.js';
 import youtubeRoutes from './routes/youtubeRoutes.js';
+import authRoutes from './routes/authRoutes.js';
 
 const app = express();
 
@@ -23,6 +24,7 @@ app.get('/health', (_req, res) => {
 app.use('/api/jamendo', jamendoRoutes);
 app.use('/api/youtube', youtubeRoutes);
 app.use('/api/playlists', playlistRoutes);
+app.use('/api/auth', authRoutes);
 
 app.use((_req, res) => {
   res.status(404).json({ error: 'Not found' });
