@@ -6,6 +6,7 @@ import { supabase } from '../services/supabase';
 
 export default function ProfilePage() {
   const { user, updateProfile } = useAuth();
+  const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -22,14 +23,16 @@ export default function ProfilePage() {
 
       const { data, error: fetchError } = await supabase
         .from('profiles')
-        .select('full_name, avatar_url')
+        .select('username, full_name, avatar_url')
         .eq('id', user.id)
         .single();
 
       if (!fetchError && data) {
+        setUsername(data.username || user?.user_metadata?.username || '');
         setFullName(data.full_name || fallbackName);
         setAvatarUrl(data.avatar_url || fallbackAvatar);
       } else {
+        setUsername(user?.user_metadata?.username || '');
         setFullName(fallbackName);
         setAvatarUrl(fallbackAvatar);
       }
@@ -84,6 +87,7 @@ export default function ProfilePage() {
       const { error: profileError } = await supabase.from('profiles').upsert(
         {
           id: user.id,
+          username: username || user?.user_metadata?.username || user?.email?.split('@')[0] || null,
           email: user.email,
           full_name: trimmedName,
           avatar_url: trimmedAvatar,
@@ -113,6 +117,7 @@ export default function ProfilePage() {
           />
           <div>
             <p className="text-sm font-semibold text-white">{fullName || 'Unnamed user'}</p>
+            <p className="text-xs text-gray-400">@{username || 'username'}</p>
             <p className="text-xs text-gray-400">{user?.email}</p>
           </div>
         </div>
