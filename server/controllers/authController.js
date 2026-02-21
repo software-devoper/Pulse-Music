@@ -5,6 +5,19 @@ export async function resolveEmailByUsername(req, res) {
     const username = req.query.username?.trim().toLowerCase();
     if (!username) return res.status(400).json({ error: 'Username is required' });
 
+    // Primary path: resolve through profiles table.
+    // This avoids dependency on Auth Admin listUsers for normal username login flow.
+    const { data: profileMatch, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('email, full_name')
+      .or(`full_name.eq.${username},email.ilike.${username}@%`)
+      .limit(1)
+      .maybeSingle();
+
+    if (!profileError && profileMatch?.email) {
+      return res.json({ email: profileMatch.email });
+    }
+
     let page = 1;
     const perPage = 200;
 
@@ -14,7 +27,14 @@ export async function resolveEmailByUsername(req, res) {
         error,
       } = await supabaseAdmin.auth.admin.listUsers({ page, perPage });
 
-      if (error) throw error;
+      if (error) {
+        if (/valid Bearer token/i.test(error.message || '')) {
+          return res.status(500).json({
+            error: 'Server auth configuration issue. Please set SUPABASE_SERVICE_ROLE_KEY on backend.',
+          });
+        }
+        throw error;
+      }
       if (users.length === 0) break;
 
       const match = users.find((u) => {
