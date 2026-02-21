@@ -1,5 +1,5 @@
-﻿import { useEffect, useRef } from 'react';
-import { Download, Pause, Play, SkipBack, SkipForward, Volume2 } from 'lucide-react';
+import { useEffect, useRef } from 'react';
+import { Download, Loader2, Pause, Play, SkipBack, SkipForward, Volume2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePlayer } from '../context/PlayerContext';
 import { saveTrackForOffline } from '../services/offlineDownloads';
@@ -43,11 +43,13 @@ export default function PlayerBar() {
   const {
     currentTrack,
     isPlaying,
+    isBuffering,
     volume,
     progress,
     duration,
     audioRef,
     setIsPlaying,
+    setIsBuffering,
     setVolume,
     setProgress,
     setDuration,
@@ -70,8 +72,11 @@ export default function PlayerBar() {
     if (isYouTube) return;
     if (!audioRef.current) return;
     if (isPlaying) audioRef.current.play().catch(() => setIsPlaying(false));
-    else audioRef.current.pause();
-  }, [isPlaying, currentTrack, audioRef, setIsPlaying, isYouTube]);
+    else {
+      audioRef.current.pause();
+      setIsBuffering(false);
+    }
+  }, [isPlaying, currentTrack, audioRef, setIsPlaying, setIsBuffering, isYouTube]);
 
   useEffect(() => {
     if (!isYouTube || !currentTrack?.videoId) return;
@@ -94,6 +99,17 @@ export default function PlayerBar() {
           },
           events: {
             onStateChange: (event) => {
+              if (event.data === YT.PlayerState.BUFFERING || event.data === YT.PlayerState.UNSTARTED) {
+                setIsBuffering(true);
+              }
+              if (event.data === YT.PlayerState.PLAYING) {
+                setIsBuffering(false);
+                setIsPlaying(true);
+              }
+              if (event.data === YT.PlayerState.PAUSED) {
+                setIsPlaying(false);
+                setIsBuffering(false);
+              }
               if (event.data === YT.PlayerState.ENDED) nextTrack();
             },
           },
@@ -116,7 +132,7 @@ export default function PlayerBar() {
     return () => {
       disposed = true;
     };
-  }, [isYouTube, currentTrack?.videoId, isPlaying, nextTrack, setProgress, volume]);
+  }, [isYouTube, currentTrack?.videoId, isPlaying, nextTrack, setProgress, setIsBuffering, setIsPlaying, volume]);
 
   useEffect(() => {
     if (!isYouTube) return;
@@ -167,6 +183,9 @@ export default function PlayerBar() {
         <audio
           ref={audioRef}
           src={currentTrack.audio}
+          onWaiting={() => setIsBuffering(true)}
+          onCanPlay={() => setIsBuffering(false)}
+          onPlaying={() => setIsBuffering(false)}
           onTimeUpdate={(e) => setProgress(e.currentTarget.currentTime)}
           onLoadedMetadata={(e) => setDuration(e.currentTarget.duration || 0)}
           onEnded={nextTrack}
@@ -198,7 +217,13 @@ export default function PlayerBar() {
               onClick={() => setIsPlaying((v) => !v)}
               className="rounded-full bg-rose-500 p-2 text-white hover:bg-rose-400"
             >
-              {isPlaying ? <Pause size={16} /> : <Play size={16} fill="currentColor" />}
+              {isBuffering ? (
+                <Loader2 size={16} className="animate-spin" />
+              ) : isPlaying ? (
+                <Pause size={16} />
+              ) : (
+                <Play size={16} fill="currentColor" />
+              )}
             </button>
             <button onClick={nextTrack} className="text-gray-300 hover:text-white">
               <SkipForward size={16} />
