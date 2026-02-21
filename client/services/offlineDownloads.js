@@ -1,6 +1,7 @@
 const DB_NAME = 'pulse_music_offline_db';
 const DB_VERSION = 1;
 const STORE_NAME = 'downloads';
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000/api';
 
 function openDatabase() {
   return new Promise((resolve, reject) => {
@@ -34,7 +35,7 @@ function runTransaction(mode, executor) {
 export async function saveTrackForOffline(track) {
   if (!track?.audio) throw new Error('No audio URL available for offline download');
 
-  const response = await fetch(track.audio);
+  const response = await fetch(`${API_BASE}/jamendo/download?audioUrl=${encodeURIComponent(track.audio)}`);
   if (!response.ok) throw new Error('Failed to fetch audio file');
   const audioBlob = await response.blob();
 
