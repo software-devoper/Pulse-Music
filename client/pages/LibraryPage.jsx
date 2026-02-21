@@ -89,7 +89,10 @@ export default function LibraryPage() {
           {playlists.map((playlist) => (
             <section key={playlist.id} className="rounded-2xl border border-white/10 bg-card/70 p-4">
               <h2 className="text-lg font-semibold text-white">{playlist.name}</h2>
-              <p className="mb-3 text-xs text-gray-400">{playlist.playlist_tracks?.length || 0} tracks</p>
+              <p className="text-xs text-gray-400">{playlist.playlist_tracks?.length || 0} tracks</p>
+              <p className="mb-3 text-[11px] text-gray-500">
+                Owner: {playlist.owner?.username || playlist.owner?.email || 'Unknown'}
+              </p>
 
               <div className="space-y-2">
                 {(playlist.playlist_tracks || []).map((entry) => (
