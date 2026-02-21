@@ -15,8 +15,27 @@ export default function ProfilePage() {
   const [notice, setNotice] = useState('');
 
   useEffect(() => {
-    setFullName(user?.user_metadata?.full_name || user?.user_metadata?.username || '');
-    setAvatarUrl(user?.user_metadata?.avatar_url || '');
+    const loadProfile = async () => {
+      if (!user?.id) return;
+      const fallbackName = user?.user_metadata?.full_name || user?.user_metadata?.username || '';
+      const fallbackAvatar = user?.user_metadata?.avatar_url || '';
+
+      const { data, error: fetchError } = await supabase
+        .from('profiles')
+        .select('full_name, avatar_url')
+        .eq('id', user.id)
+        .single();
+
+      if (!fetchError && data) {
+        setFullName(data.full_name || fallbackName);
+        setAvatarUrl(data.avatar_url || fallbackAvatar);
+      } else {
+        setFullName(fallbackName);
+        setAvatarUrl(fallbackAvatar);
+      }
+    };
+
+    loadProfile();
   }, [user]);
 
   const uploadAvatar = async (file) => {
@@ -53,11 +72,27 @@ export default function ProfilePage() {
     setError('');
     setNotice('');
     try {
+      const trimmedName = fullName.trim();
+      const trimmedAvatar = avatarUrl.trim();
+
       const { error: updateError } = await updateProfile({
-        full_name: fullName.trim(),
-        avatar_url: avatarUrl.trim(),
+        full_name: trimmedName,
+        avatar_url: trimmedAvatar,
       });
       if (updateError) throw updateError;
+
+      const { error: profileError } = await supabase.from('profiles').upsert(
+        {
+          id: user.id,
+          email: user.email,
+          full_name: trimmedName,
+          avatar_url: trimmedAvatar,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: 'id' }
+      );
+      if (profileError) throw profileError;
+
       setNotice('Profile updated successfully.');
       setIsEditing(false);
     } catch (err) {
