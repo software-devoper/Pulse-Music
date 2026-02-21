@@ -1,4 +1,4 @@
-﻿import { Disc3, Eye, EyeOff, Headphones, Lock, LogIn, Mail, ShieldCheck, User, UserPlus } from 'lucide-react';
+import { Disc3, Eye, EyeOff, Headphones, Lock, LogIn, Mail, ShieldCheck, User, UserPlus } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -87,7 +87,7 @@ export default function AuthPage() {
         setUsernameMap(map);
 
         if (!data?.session) {
-          setNotice('Account created. Check your email to confirm your account, then log in.');
+          setNotice('Pulse Music Studio: account created. Check your email to verify your account, then log in.');
           setMode('login');
           setPassword('');
           setConfirmPassword('');
