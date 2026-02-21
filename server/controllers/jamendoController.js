@@ -90,3 +90,31 @@ export async function getTrackById(req, res) {
     res.status(500).json({ error: err.response?.data?.headers?.error_message || err.message });
   }
 }
+
+export async function proxyDownload(req, res) {
+  try {
+    const audioUrl = req.query.audioUrl;
+    if (!audioUrl) return res.status(400).json({ error: 'Missing audio URL' });
+
+    const parsed = new URL(audioUrl);
+    const host = parsed.hostname.toLowerCase();
+    if (!host.includes('jamendo.com') && !host.includes('jamen.do')) {
+      return res.status(400).json({ error: 'Invalid download source' });
+    }
+
+    const response = await axios.get(audioUrl, {
+      responseType: 'arraybuffer',
+      timeout: 30000,
+      maxRedirects: 5,
+    });
+
+    const contentType = response.headers['content-type'] || 'audio/mpeg';
+    const contentLength = response.headers['content-length'];
+
+    res.setHeader('Content-Type', contentType);
+    if (contentLength) res.setHeader('Content-Length', contentLength);
+    res.send(Buffer.from(response.data));
+  } catch (err) {
+    res.status(500).json({ error: err.message || 'Failed to download track' });
+  }
+}
