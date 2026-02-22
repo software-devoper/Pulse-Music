@@ -1,4 +1,4 @@
-import { Check, Download, Loader2, Music2, Pause, Play, Search } from 'lucide-react';
+import { Download, Loader2, Music2, Pause, Play, Search } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import useDebounce from '../hooks/useDebounce';
 import { useAuth } from '../context/AuthContext';
@@ -51,9 +51,9 @@ function mixResults(youtubeItems, jamendoItems) {
   return mixed;
 }
 
-export default function UnifiedSearch() {
+export default function UnifiedSearch({ showSearch = true }) {
   const [query, setQuery] = useState('');
-  const debouncedQuery = useDebounce(query, 500);
+  const debouncedQuery = useDebounce(query, 900);
   const [results, setResults] = useState([]);
   const [popular, setPopular] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -170,17 +170,19 @@ export default function UnifiedSearch() {
 
   return (
     <div>
-      <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-        <div className="flex items-center gap-2 text-gray-300">
-          <Search size={16} />
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search songs, artists..."
-            className="w-full bg-transparent text-sm text-white outline-none placeholder:text-gray-500"
-          />
+      {showSearch ? (
+        <div className="mb-6 rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+          <div className="flex items-center gap-2 text-gray-300">
+            <Search size={16} />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search songs, artists..."
+              className="w-full bg-transparent text-sm text-white outline-none placeholder:text-gray-500"
+            />
+          </div>
         </div>
-      </div>
+      ) : null}
 
       {error ? <p className="mb-4 text-sm text-rose-300">{error}</p> : null}
       {notice ? <p className="mb-4 text-sm text-emerald-300">{notice}</p> : null}
@@ -230,7 +232,7 @@ export default function UnifiedSearch() {
                         className="rounded-md border border-white/20 p-1.5 text-gray-200 hover:bg-white/10 disabled:opacity-40"
                         title={user ? 'Save offline' : 'Login required'}
                       >
-                        {downloadingId === item.id ? <Check size={14} /> : <Download size={14} />}
+                        {downloadingId === item.id ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                       </button>
                     ) : (
                       <button
