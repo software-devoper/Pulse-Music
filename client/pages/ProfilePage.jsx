@@ -163,7 +163,9 @@ export default function ProfilePage() {
           )}
 
           {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-          {notice ? <p className="text-sm text-emerald-300">{notice}</p> : null}
+          {notice && !(isEditing && notice === 'Profile updated successfully.') ? (
+            <p className="text-sm text-emerald-300">{notice}</p>
+          ) : null}
 
           <div className="flex items-center gap-2">
             {isEditing ? (
@@ -179,6 +181,7 @@ export default function ProfilePage() {
                 type="button"
                 onClick={() => {
                   setIsEditing(true);
+                  setError('');
                   setNotice('');
                 }}
                 className="rounded-xl border border-white/20 px-4 py-2 text-sm text-gray-200 hover:bg-white/10"
