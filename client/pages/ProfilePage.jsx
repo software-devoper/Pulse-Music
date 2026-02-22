@@ -9,6 +9,7 @@ export default function ProfilePage() {
   const [username, setUsername] = useState('');
   const [fullName, setFullName] = useState('');
   const [avatarUrl, setAvatarUrl] = useState('');
+  const [initialProfile, setInitialProfile] = useState({ fullName: '', avatarUrl: '' });
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -28,13 +29,17 @@ export default function ProfilePage() {
         .single();
 
       if (!fetchError && data) {
+        const nextFullName = data.full_name || fallbackName;
+        const nextAvatar = data.avatar_url || fallbackAvatar;
         setUsername(data.username || user?.user_metadata?.username || '');
-        setFullName(data.full_name || fallbackName);
-        setAvatarUrl(data.avatar_url || fallbackAvatar);
+        setFullName(nextFullName);
+        setAvatarUrl(nextAvatar);
+        setInitialProfile({ fullName: nextFullName, avatarUrl: nextAvatar });
       } else {
         setUsername(user?.user_metadata?.username || '');
         setFullName(fallbackName);
         setAvatarUrl(fallbackAvatar);
+        setInitialProfile({ fullName: fallbackName, avatarUrl: fallbackAvatar });
       }
     };
 
@@ -77,13 +82,25 @@ export default function ProfilePage() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!isEditing) return;
+
+    const trimmedName = fullName.trim();
+    const trimmedAvatar = avatarUrl.trim();
+    const changed =
+      trimmedName !== (initialProfile.fullName || '').trim() ||
+      trimmedAvatar !== (initialProfile.avatarUrl || '').trim();
+
+    if (!changed) {
+      setNotice('No changes to save.');
+      setError('');
+      setIsEditing(false);
+      return;
+    }
+
     setSaving(true);
     setError('');
     setNotice('');
     try {
-      const trimmedName = fullName.trim();
-      const trimmedAvatar = avatarUrl.trim();
-
       const { error: updateError } = await updateProfile({
         full_name: trimmedName,
         avatar_url: trimmedAvatar,
@@ -103,8 +120,10 @@ export default function ProfilePage() {
       );
       if (profileError) throw profileError;
 
+      setInitialProfile({ fullName: trimmedName, avatarUrl: trimmedAvatar });
       setNotice('Profile updated successfully.');
       setIsEditing(false);
+      setTimeout(() => setNotice(''), 2500);
     } catch (err) {
       setError(err.message || 'Could not update profile');
     } finally {
@@ -169,17 +188,33 @@ export default function ProfilePage() {
 
           <div className="flex items-center gap-2">
             {isEditing ? (
-              <button
-                type="submit"
-                disabled={saving || uploading}
-                className="rounded-xl bg-rose-500 px-4 py-2 text-sm text-white hover:bg-rose-400 disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : 'Save Profile'}
-              </button>
+              <>
+                <button
+                  type="submit"
+                  disabled={saving || uploading}
+                  className="rounded-xl bg-rose-500 px-4 py-2 text-sm text-white hover:bg-rose-400 disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save Profile'}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFullName(initialProfile.fullName);
+                    setAvatarUrl(initialProfile.avatarUrl);
+                    setIsEditing(false);
+                    setError('');
+                    setNotice('');
+                  }}
+                  className="rounded-xl border border-white/20 px-4 py-2 text-sm text-gray-200 hover:bg-white/10"
+                >
+                  Cancel
+                </button>
+              </>
             ) : (
               <button
                 type="button"
-                onClick={() => {
+                onClick={(e) => {
+                  e.preventDefault();
                   setIsEditing(true);
                   setError('');
                   setNotice('');
