@@ -9,7 +9,7 @@ import { addTrackToPlaylist, fetchPlaylists } from '../services/playlists';
 
 export default function DashboardPage() {
   const { session } = useAuth();
-  const { playTrack, currentTrack, isPlaying } = usePlayer();
+  const { playTrack, currentTrack, isPlaying, isBuffering, setIsPlaying } = usePlayer();
   const [popular, setPopular] = useState([]);
   const [artists, setArtists] = useState([]);
   const [playlists, setPlaylists] = useState([]);
@@ -63,6 +63,15 @@ export default function DashboardPage() {
     }
   };
 
+  const togglePlayFromBrowse = (track) => {
+    const sameTrack = String(currentTrack?.id) === String(track.id);
+    if (sameTrack) {
+      setIsPlaying((v) => !v);
+      return;
+    }
+    playTrack(track, popular);
+  };
+
   if (loading) {
     return (
       <AppLayout title="Browse" subtitle="Your music dashboard">
@@ -82,9 +91,10 @@ export default function DashboardPage() {
             <AlbumCard
               key={track.id}
               item={track}
-              onPlay={() => playTrack(track, popular)}
+              onPlay={() => togglePlayFromBrowse(track)}
               active={String(currentTrack?.id) === String(track.id)}
               isPlaying={isPlaying}
+              isBuffering={isBuffering}
             />
           ))}
         </div>
@@ -99,10 +109,11 @@ export default function DashboardPage() {
               item={artist}
               onPlay={() => {
                 const match = popular.find((t) => t.artist_name === artist.name || t.artist_name === artist.shortname);
-                if (match) playTrack(match, popular);
+                if (match) togglePlayFromBrowse(match);
               }}
               active={false}
               isPlaying={false}
+              isBuffering={false}
             />
           ))}
         </div>
