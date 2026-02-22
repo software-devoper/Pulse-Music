@@ -35,7 +35,7 @@ export default function Sidebar({ open, setOpen }) {
       >
         <Link to="/" className="mb-8 flex items-center gap-2 text-xl font-semibold text-white">
           <ListMusic className="text-rose-400" size={22} />
-          Apple Music
+          Pulse Music
         </Link>
 
         <nav className="flex-1 space-y-2 overflow-y-auto">
