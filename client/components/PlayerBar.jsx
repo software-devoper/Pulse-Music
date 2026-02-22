@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Download, Loader2, Pause, Play, SkipBack, SkipForward, Volume2 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { usePlayer } from '../context/PlayerContext';
@@ -61,6 +61,7 @@ export default function PlayerBar() {
   const ytContainerRef = useRef(null);
   const ytPlayerRef = useRef(null);
   const ytVideoIdRef = useRef('');
+  const [isDownloading, setIsDownloading] = useState(false);
 
   useEffect(() => {
     if (isYouTube) return;
@@ -167,11 +168,14 @@ export default function PlayerBar() {
 
   const handleDownload = async () => {
     if (!user || !currentTrack.audio) return;
+    setIsDownloading(true);
     try {
       await saveTrackForOffline(currentTrack);
       alert('Saved to Downloads for offline playback.');
     } catch (err) {
       alert(err.message || 'Download failed');
+    } finally {
+      setIsDownloading(false);
     }
   };
 
@@ -201,10 +205,7 @@ export default function PlayerBar() {
           />
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">{currentTrack.name}</p>
-            <p className="truncate text-xs text-gray-400">
-              {currentTrack.artist_name}
-              {isYouTube ? ' | YouTube' : ''}
-            </p>
+            <p className="truncate text-xs text-gray-400">{currentTrack.artist_name}</p>
           </div>
         </div>
 
@@ -265,11 +266,11 @@ export default function PlayerBar() {
         <div className="flex items-center justify-end gap-3">
           <button
             onClick={handleDownload}
-            disabled={!user || isYouTube}
+            disabled={!user || isYouTube || isDownloading}
             className="rounded-md border border-white/20 p-2 text-gray-300 hover:bg-white/10 disabled:opacity-40"
             title={isYouTube ? 'Download unavailable for YouTube' : 'Download for offline'}
           >
-            <Download size={14} />
+            {isDownloading ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
           </button>
           <div className="flex items-center gap-2 text-gray-300">
             <Volume2 size={14} />
