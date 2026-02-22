@@ -11,7 +11,7 @@ export default function ProfilePage() {
   const [avatarUrl, setAvatarUrl] = useState('');
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [isEditing, setIsEditing] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
 
@@ -49,7 +49,13 @@ export default function ProfilePage() {
     try {
       const bucket = import.meta.env.VITE_SUPABASE_AVATAR_BUCKET || 'avatars';
       const extension = file.name.split('.').pop() || 'jpg';
-      const filePath = `${user.id}/${Date.now()}.${extension}`;
+      const filePath = `${user.id}/avatar.${extension}`;
+
+      const { data: existingFiles } = await supabase.storage.from(bucket).list(user.id, { limit: 100 });
+      if (existingFiles?.length) {
+        const removeTargets = existingFiles.map((item) => `${user.id}/${item.name}`);
+        await supabase.storage.from(bucket).remove(removeTargets);
+      }
 
       const { error: uploadError } = await supabase.storage.from(bucket).upload(filePath, file, {
         upsert: true,
